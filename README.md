@@ -72,7 +72,7 @@ Route	Content
 
 Running Locally
 # Clone or download the repository
-git clone https://github.com/your-username/neural-lens.git
+git clone(https://ryth-07.github.io/neural-lens/)
 cd neural-lens
 
 # Option 1: Open directly
