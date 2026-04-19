@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Neural Lens — NLP &amp; LLM Field Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+  <!-- ╔══════════════════════════════════════════════════════════╗
+       ║  SIDEBAR — Fixed left navigation                        ║
+       ║  Each link calls switchPage(pageId) via onclick.        ║
+       ║  data-page must match the id of a .page element.        ║
+        -->
+  <aside id="sidebar" aria-label="Site navigation">
+
+    <div class="sb-brand">
+      <svg class="sb-logo" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="14" cy="14" r="3.5" stroke-width="1.8"/>
+        <circle cx="4"  cy="6"  r="2.2"/>
+        <circle cx="24" cy="6"  r="2.2"/>
+        <circle cx="4"  cy="22" r="2.2"/>
+        <circle cx="24" cy="22" r="2.2"/>
+        <line x1="7"  y1="8"  x2="11.2" y2="11.4"/>
+        <line x1="21" y1="8"  x2="16.8" y2="11.4"/>
+        <line x1="7"  y1="20" x2="11.2" y2="16.6"/>
+        <line x1="21" y1="20" x2="16.8" y2="16.6"/>
+      </svg>
+      <div class="sb-brand-text">
+        <span class="sb-brand-name">Neural Lens</span>
+        <span class="sb-brand-sub">NLP Field Guide</span>
+      </div>
+    </div>
+
+    <nav class="sb-nav">
+
+      <!-- Introduction -->
+      <button class="nav-btn active" data-page="page-home" onclick="switchPage('page-home',this)">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l7-7 7 7v9a1 1 0 01-1 1H4a1 1 0 01-1-1z"/>
+          <polyline points="8,19 8,13 12,13 12,19"/>
+        </svg>
+        Introduction
+      </button>
+
+      <!-- Topics dropdown group -->
+      <div class="nav-group" id="topics-group">
+        <button class="nav-group-toggle" onclick="toggleGroup()" aria-expanded="true" aria-controls="topics-list">
+          <div class="ngt-left">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
+              <path d="M6.5 2H18v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
+            </svg>
+            <span>Topics</span>
+            <span class="nav-badge">6</span>
+          </div>
+          <svg class="caret" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4,6 8,10 12,6"/>
+          </svg>
+        </button>
+
+        <div class="nav-children" id="topics-list">
+          <button class="nav-btn nav-child" data-page="page-tokenization" onclick="switchPage('page-tokenization',this)">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2"  y="3" width="6" height="4" rx="1"/>
+              <rect x="12" y="3" width="6" height="4" rx="1"/>
+              <rect x="2"  y="11" width="6" height="4" rx="1"/>
+              <rect x="12" y="11" width="6" height="4" rx="1"/>
+            </svg>
+            Tokenization
+          </button>
+          <button class="nav-btn nav-child" data-page="page-embeddings" onclick="switchPage('page-embeddings',this)">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="10" cy="10" r="3"/>
+              <line x1="2" y1="10" x2="7" y2="10"/><line x1="13" y1="10" x2="18" y2="10"/>
+              <line x1="10" y1="2"  x2="10" y2="7"/><line x1="10" y1="13" x2="10" y2="18"/>
+            </svg>
+            Embeddings
+          </button>
+          <button class="nav-btn nav-child" data-page="page-attention" onclick="switchPage('page-attention',this)">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 10s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7z"/>
+              <circle cx="10" cy="10" r="2.5"/>
+            </svg>
+            Self-Attention
+          </button>
+          <button class="nav-btn nav-child" data-page="page-transformer" onclick="switchPage('page-transformer',this)">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2"  y="6"  width="4" height="8" rx="1"/>
+              <rect x="8"  y="3"  width="4" height="14" rx="1"/>
+              <rect x="14" y="6"  width="4" height="8" rx="1"/>
+            </svg>
+            Transformer
+          </button>
+          <button class="nav-btn nav-child" data-page="page-rlhf" onclick="switchPage('page-rlhf',this)">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 17v-2a3 3 0 00-3-3H5a3 3 0 00-3 3v2"/>
+              <circle cx="8" cy="6" r="3"/>
+              <path d="M19 17v-2a3 3 0 00-2-2.83M14 3.13a3 3 0 010 5.75"/>
+            </svg>
+            RLHF
+          </button>
+          <button class="nav-btn nav-child" data-page="page-hallucinations" onclick="switchPage('page-hallucinations',this)">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8.5 3.2L1.5 15a1.5 1.5 0 001.3 2.3h14.4a1.5 1.5 0 001.3-2.3L11.5 3.2a1.5 1.5 0 00-3 0z"/>
+              <line x1="10" y1="8"  x2="10" y2="11"/>
+              <line x1="10" y1="14" x2="10" y2="14.1"/>
+            </svg>
+            Hallucinations
+          </button>
+        </div>
+      </div>
+
+      <!-- Interactive Lab -->
+      <button class="nav-btn" data-page="page-lab" onclick="switchPage('page-lab',this)">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M7 2h6M8 2v6l-5 8a1 1 0 00.9 1.5h12.2A1 1 0 0017 16l-5-8V2"/>
+          <circle cx="9" cy="12" r="1" fill="currentColor"/>
+        </svg>
+        Interactive Lab
+      </button>
+
+      <!-- Video Library -->
+      <button class="nav-btn" data-page="page-videos" onclick="switchPage('page-videos',this)">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="1" y="4" width="12" height="12" rx="1.5"/>
+          <polygon points="19,4 13,8 13,12 19,16"/>
+        </svg>
+        Video Library
+      </button>
+
+      <!-- Quiz -->
+      <button class="nav-btn" data-page="page-quiz" onclick="switchPage('page-quiz',this)">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M7 9l3 3 6-6"/>
+          <path d="M18 10a8 8 0 11-16 0 8 8 0 0116 0z"/>
+        </svg>
+        Knowledge Quiz
+      </button>
+
+    </nav>
+
+    <div class="sb-footer">
+      <button id="theme-btn" onclick="toggleTheme()" aria-label="Toggle theme">
+        <svg class="icon-sun" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <circle cx="10" cy="10" r="3"/>
+          <line x1="10" y1="1" x2="10" y2="3"/><line x1="10" y1="17" x2="10" y2="19"/>
+          <line x1="1" y1="10" x2="3" y2="10"/><line x1="17" y1="10" x2="19" y2="10"/>
+          <line x1="3.2" y1="3.2" x2="4.6" y2="4.6"/><line x1="15.4" y1="15.4" x2="16.8" y2="16.8"/>
+          <line x1="16.8" y1="3.2" x2="15.4" y2="4.6"/><line x1="4.6" y1="15.4" x2="3.2" y2="16.8"/>
+        </svg>
+        <svg class="icon-moon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M17.5 12.5A7.5 7.5 0 017 2a8.5 8.5 0 100 16 7.5 7.5 0 0010.5-5.5z"/>
+        </svg>
+        <span class="sun-lbl">Light mode</span>
+        <span class="moon-lbl">Dark mode</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Mobile top bar -->
+  <header id="topbar">
+    <button id="menu-btn" onclick="toggleSidebar()" aria-label="Menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line x1="3" y1="6"  x2="21" y2="6"/>
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+    <span class="topbar-title">Neural Lens</span>
+    <button onclick="toggleTheme()" class="topbar-theme" aria-label="Toggle theme">
+      <svg class="icon-sun" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <circle cx="10" cy="10" r="3"/>
+        <line x1="10" y1="1" x2="10" y2="3"/><line x1="10" y1="17" x2="10" y2="19"/>
+        <line x1="1" y1="10" x2="3" y2="10"/><line x1="17" y1="10" x2="19" y2="10"/>
+      </svg>
+      <svg class="icon-moon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <path d="M17.5 12.5A7.5 7.5 0 017 2a8.5 8.5 0 100 16 7.5 7.5 0 0010.5-5.5z"/>
+      </svg>
+    </button>
+  </header>
+  <div id="overlay" onclick="closeSidebar()"></div>
+
+  <!-- ╔══════════════════════════════════════════════════════════╗
+       ║  MAIN — Page container                                  ║
+       ║  All .page elements live here. Only .page.active shows. ║
+       ╚══════════════════════════════════════════════════════════╝ -->
+  <main id="main">
+
+    <!-- ▓▓▓▓▓  PAGE: INTRODUCTION  ▓▓▓▓▓ -->
+    <section class="page active" id="page-home">
+      <div class="page-wrap">
+        <p class="pg-eyebrow">Welcome</p>
+        <h1 class="pg-h1">Inside the machine<br/>that <em>speaks.</em></h1>
+        <p class="pg-lead">A rigorous, interactive primer on Natural Language Processing and Large Language Models — built for CSE students. Six structured topics, a live lab, curated videos, and a quiz.</p>
+
+        <div class="home-grid">
+          <div class="home-card" onclick="switchPage('page-tokenization', document.querySelector('[data-page=page-tokenization]'))">
+            <span class="hc-num">01</span>
+            <h3>Tokenization</h3>
+            <p>How raw text becomes integers — the atomic unit every LLM reasons with.</p>
+            <span class="hc-arrow">&rarr;</span>
+          </div>
+          <div class="home-card" onclick="switchPage('page-embeddings', document.querySelector('[data-page=page-embeddings]'))">
+            <span class="hc-num">02</span>
+            <h3>Embeddings</h3>
+            <p>Dense vector spaces where geometry encodes semantic meaning.</p>
+            <span class="hc-arrow">&rarr;</span>
+          </div>
+          <div class="home-card" onclick="switchPage('page-attention', document.querySelector('[data-page=page-attention]'))">
+            <span class="hc-num">03</span>
+            <h3>Self-Attention</h3>
+            <p>The mechanism that lets every token see every other token simultaneously.</p>
+            <span class="hc-arrow">&rarr;</span>
+          </div>
+          <div class="home-card" onclick="switchPage('page-transformer', document.querySelector('[data-page=page-transformer]'))">
+            <span class="hc-num">04</span>
+            <h3>Transformer</h3>
+            <p>The architecture that ended RNN dominance and started the LLM era.</p>
+            <span class="hc-arrow">&rarr;</span>
+          </div>
+          <div class="home-card" onclick="switchPage('page-rlhf', document.querySelector('[data-page=page-rlhf]'))">
+            <span class="hc-num">05</span>
+            <h3>RLHF</h3>
+            <p>How raw predictors become aligned, helpful assistants in three phases.</p>
+            <span class="hc-arrow">&rarr;</span>
+          </div>
+          <div class="home-card" onclick="switchPage('page-hallucinations', document.querySelector('[data-page=page-hallucinations]'))">
+            <span class="hc-num">06</span>
+            <h3>Hallucinations</h3>
+            <p>Why fluent, confident, and factually wrong are not mutually exclusive.</p>
+            <span class="hc-arrow">&rarr;</span>
+          </div>
+        </div>
+
+        <div class="home-footer-row">
+          <button class="btn-primary" onclick="switchPage('page-tokenization', document.querySelector('[data-page=page-tokenization]'))">Start with Topic 01 &rarr;</button>
+          <button class="btn-ghost"   onclick="switchPage('page-lab', document.querySelector('[data-page=page-lab]'))">Go to Interactive Lab</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ▓▓▓▓▓  TOPIC 1: TOKENIZATION  ▓▓▓▓▓ -->
+    <section class="page" id="page-tokenization">
+      <div class="page-wrap">
+        <p class="pg-eyebrow">Topic 01 of 06</p>
+        <h1 class="pg-h1">Tokenization</h1>
+        <p class="pg-lead">A language model cannot read words. It reads integers. Tokenization bridges human-readable text and machine-readable numbers — converting any string into a sequence of integer IDs from a fixed vocabulary.</p>
+
+        <h2>Why characters or words aren't enough</h2>
+        <p>A character-level vocabulary is tiny but produces very long sequences, making attention computationally expensive. A word-level vocabulary would require hundreds of thousands of entries and can never handle unseen words. Subword tokenization hits the sweet spot: a vocabulary of ~50,000–100,000 units, with common words as single tokens and rare words expressed as composable subwords.</p>
+
+        <div class="callout">
+          <strong>Example:</strong> "unhappiness" might tokenize as <code>["un", "happi", "ness"]</code>. Each piece is a reusable unit the model has seen many times in other contexts.
+        </div>
+
+        <h2>Byte-Pair Encoding (BPE)</h2>
+        <p>The dominant algorithm for LLM tokenization. BPE starts with individual characters and iteratively merges the most frequent adjacent pair of symbols into a new unit, repeating until a target vocabulary size is reached. The learned merge rules are then applied to encode any new text.</p>
+
+        <div class="step-list">
+          <div class="step-item"><span class="step-n">1</span><div><strong>Initialise</strong> — vocabulary starts as all individual characters + a special end-of-word marker</div></div>
+          <div class="step-item"><span class="step-n">2</span><div><strong>Count</strong> — scan the entire corpus and count every adjacent symbol pair</div></div>
+          <div class="step-item"><span class="step-n">3</span><div><strong>Merge</strong> — combine the most frequent pair into a new symbol; update all occurrences</div></div>
+          <div class="step-item"><span class="step-n">4</span><div><strong>Repeat</strong> — continue until vocabulary size equals the target (e.g. 50,257 for GPT-2)</div></div>
+          <div class="step-item"><span class="step-n">5</span><div><strong>Encode</strong> — apply learned merge rules to any new text to produce token IDs</div></div>
+        </div>
+
+        <div class="topic-video">
+          <p class="tv-eyebrow">Recommended video</p>
+          <div class="video-responsive">
+            <iframe src="https://www.youtube-nocookie.com/embed/zduSFxRajkE?rel=0" title="Let's build the GPT Tokenizer — Andrej Karpathy" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" loading="lazy"></iframe>
+          </div>
+          <p class="tv-caption">Andrej Karpathy — "Let's build the GPT Tokenizer" · BPE and tiktoken from scratch</p>
+        </div>
+
+        <div class="page-nav">
+          <span></span>
+          <button class="btn-primary" onclick="switchPage('page-embeddings', document.querySelector('[data-page=page-embeddings]'))">Next: Embeddings &rarr;</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ▓▓▓▓▓  TOPIC 2: EMBEDDINGS  ▓▓▓▓▓ -->
+    <section class="page" id="page-embeddings">
+      <div class="page-wrap">
+        <p class="pg-eyebrow">Topic 02 of 06</p>
+        <h1 class="pg-h1">Embeddings</h1>
+        <p class="pg-lead">An integer token ID is just a label — it carries no information about meaning. Embeddings convert those integers into dense floating-point vectors where geometric proximity reflects semantic similarity.</p>
+
+        <h2>The embedding lookup table</h2>
+        <p>The model maintains a learned matrix of size <em>V × d</em> where V is the vocabulary size and d is the embedding dimension (512–4096 in modern models). Looking up token ID 15496 retrieves row 15496 — a vector of d numbers called its <em>embedding</em>. This lookup is the very first operation in every forward pass.</p>
+
+        <div class="callout">
+          <strong>Key insight:</strong> Embeddings are not hand-designed. They emerge entirely from training. The model learns to place tokens that appear in similar contexts near each other in vector space — encoding grammar, syntax, semantics, and world knowledge without any explicit instruction.
+        </div>
+
+        <h2>Geometric structure of meaning</h2>
+        <p>Word2Vec (2013) demonstrated that embedding arithmetic captures analogy: <em>vec("king") − vec("man") + vec("woman") ≈ vec("queen")</em>. This relationship emerges from statistical co-occurrence patterns — not programming. Transformer models learn vastly richer embedding spaces, but the same geometric intuition applies.</p>
+
+        <h2>Static vs contextual embeddings</h2>
+        <p>Word2Vec and GloVe assign one fixed vector per word regardless of context. The word "bank" had the same embedding whether used in "river bank" or "bank account". Transformers produce <em>contextual</em> embeddings — the vector for "bank" is different in every sentence, shaped by every other token via self-attention.</p>
+
+        <div class="topic-video">
+          <p class="tv-eyebrow">Recommended video</p>
+          <div class="video-responsive">
+            <iframe src="https://www.youtube-nocookie.com/embed/wjZofJX0v4M?rel=0" title="Word Embeddings — 3Blue1Brown" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" loading="lazy"></iframe>
+          </div>
+          <p class="tv-caption">3Blue1Brown — "But what is a word embedding?" · Vector arithmetic and semantic geometry</p>
+        </div>
+
+        <div class="page-nav">
+          <button class="btn-ghost" onclick="switchPage('page-tokenization', document.querySelector('[data-page=page-tokenization]'))">&larr; Tokenization</button>
+          <button class="btn-primary" onclick="switchPage('page-attention', document.querySelector('[data-page=page-attention]'))">Next: Self-Attention &rarr;</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ▓▓▓▓▓  TOPIC 3: SELF-ATTENTION  ▓▓▓▓▓ -->
+    <section class="page" id="page-attention">
+      <div class="page-wrap">
+        <p class="pg-eyebrow">Topic 03 of 06</p>
+        <h1 class="pg-h1">Self-Attention</h1>
+        <p class="pg-lead">Self-attention lets every token directly query every other token — capturing long-range dependencies that recurrent networks could not. It is the core mechanism of the Transformer.</p>
+
+        <h2>Query, Key, Value</h2>
+        <p>For each token embedding <em>x</em>, three linear projections produce a Query Q ("what am I searching for?"), a Key K ("what do I advertise?"), and a Value V ("what do I carry?"). The attention weight between tokens <em>i</em> and <em>j</em> is the dot product Q<sub>i</sub>·K<sub>j</sub> scaled by √d<sub>k</sub>, passed through softmax. The output for token <em>i</em> is a weighted sum of all Value vectors.</p>
+
+        <div class="callout">
+          <strong>Formula:</strong> Attention(Q, K, V) = softmax( QKᵀ / √d<sub>k</sub> ) · V
+        </div>
+
+        <!-- Attention Heatmap Demo -->
+        <h2>Live heatmap demo</h2>
+        <p>Hover any word below. The highlight intensity on other words shows how strongly an attention head attends to that token in context.</p>
+        <div class="heatmap-box">
+          <div class="heatmap-sent" id="heatmap-sent"></div>
+          <p class="heatmap-hint">Hover a word to reveal its attention pattern</p>
+        </div>
+
+        <h2>Multi-head attention</h2>
+        <p>The Transformer runs <em>h</em> attention heads in parallel, each with independent Q/K/V projections. Different heads specialise — one may track syntactic dependencies, another co-reference, another positional proximity. Their outputs are concatenated and projected back to the model dimension.</p>
+
+        <h2>Causal masking (GPT)</h2>
+        <p>During generation, token <em>i</em> must not see token <em>j > i</em>. A causal mask sets those attention scores to −∞ before softmax, making them zero after normalisation. This enforces strictly left-to-right generation.</p>
+
+        <div class="topic-video">
+          <p class="tv-eyebrow">Recommended video</p>
+          <div class="video-responsive">
+            <iframe src="https://www.youtube-nocookie.com/embed/CMrHM8a3hqw?rel=0" title="But what is a GPT? — 3Blue1Brown" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" loading="lazy"></iframe>
+          </div>
+          <p class="tv-caption">3Blue1Brown — "But what is a GPT?" · Transformers and attention explained visually</p>
+        </div>
+
+        <div class="page-nav">
+          <button class="btn-ghost" onclick="switchPage('page-embeddings', document.querySelector('[data-page=page-embeddings]'))">&larr; Embeddings</button>
+          <button class="btn-primary" onclick="switchPage('page-transformer', document.querySelector('[data-page=page-transformer]'))">Next: Transformer &rarr;</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ▓▓▓▓▓  TOPIC 4: TRANSFORMER  ▓▓▓▓▓ -->
+    <section class="page" id="page-transformer">
+      <div class="page-wrap">
+        <p class="pg-eyebrow">Topic 04 of 06</p>
+        <h1 class="pg-h1">The Transformer</h1>
+        <p class="pg-lead">"Attention Is All You Need" (Vaswani et al., Google, 2017) replaced recurrent networks as the dominant sequence-modelling architecture. The key insight: attention mechanisms alone — without recurrence or convolution — are sufficient.</p>
+
+        <h2>Architecture at a glance</h2>
+        <div class="step-list">
+          <div class="step-item"><span class="step-n">1</span><div><strong>Token + positional embeddings</strong> — each token ID becomes a d-dimensional vector; sine/cosine positional encodings inject sequence order</div></div>
+          <div class="step-item"><span class="step-n">2</span><div><strong>Multi-head self-attention</strong> — every token attends to all others (or all previous ones, for causal generation)</div></div>
+          <div class="step-item"><span class="step-n">3</span><div><strong>Add &amp; LayerNorm</strong> — residual connection adds input to output; LayerNorm stabilises training</div></div>
+          <div class="step-item"><span class="step-n">4</span><div><strong>Feed-forward network</strong> — two linear layers with GELU, projecting to 4× model width and back</div></div>
+          <div class="step-item"><span class="step-n">5</span><div><strong>Repeat N times</strong> — GPT-4 stacks ~128 layers; depth is what creates deep understanding</div></div>
+          <div class="step-item"><span class="step-n">6</span><div><strong>Output head</strong> — final hidden state → vocabulary-sized logits → softmax → token probability distribution</div></div>
+        </div>
+
+        <div class="callout">
+          <strong>BERT vs GPT:</strong> BERT uses bidirectional attention — reads the full sentence at once, optimal for understanding tasks. GPT uses causal (unidirectional) attention — reads left to right, optimal for generation. Both are Transformers; only the masking strategy differs.
+        </div>
+
+        <div class="topic-video">
+          <p class="tv-eyebrow">Recommended video</p>
+          <div class="video-responsive">
+            <iframe src="https://www.youtube-nocookie.com/embed/kCc8FmEb1nY?rel=0" title="Let's build GPT from scratch — Andrej Karpathy" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" loading="lazy"></iframe>
+          </div>
+          <p class="tv-caption">Andrej Karpathy — "Let's build GPT from scratch" · Complete Transformer implementation in Python</p>
+        </div>
+
+        <div class="page-nav">
+          <button class="btn-ghost" onclick="switchPage('page-attention', document.querySelector('[data-page=page-attention]'))">&larr; Self-Attention</button>
+          <button class="btn-primary" onclick="switchPage('page-rlhf', document.querySelector('[data-page=page-rlhf]'))">Next: RLHF &rarr;</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ▓▓▓▓▓  TOPIC 5: RLHF  ▓▓▓▓▓ -->
+    <section class="page" id="page-rlhf">
+      <div class="page-wrap">
+        <p class="pg-eyebrow">Topic 05 of 06</p>
+        <h1 class="pg-h1">RLHF</h1>
+        <p class="pg-lead">Reinforcement Learning from Human Feedback transforms a raw next-token predictor into a helpful, safe assistant. Without it, a pre-trained LLM is brilliant at imitating the internet — including its worst parts.</p>
+
+        <h2>Phase 1 — Supervised Fine-Tuning (SFT)</h2>
+        <p>Human contractors write ideal (prompt → response) pairs. The base model is fine-tuned on these examples, shifting it toward "helpful assistant" behaviour in style and tone. This alone is insufficient — the behaviour is inconsistent and the model still produces harmful outputs.</p>
+
+        <h2>Phase 2 — Reward Model Training</h2>
+        <p>The SFT model generates multiple responses to each prompt. Human raters rank them from best to worst. A separate neural network — the <em>Reward Model (RM)</em> — is trained on these rankings. It learns to score any (prompt, response) pair without further human involvement.</p>
+
+        <h2>Phase 3 — RL via PPO</h2>
+        <p>The SFT model is treated as a policy. The Reward Model evaluates its outputs; <em>Proximal Policy Optimization (PPO)</em> updates the policy's weights to maximise reward. A KL-divergence penalty prevents the policy from drifting so far from the SFT baseline that it "reward-hacks" — generating responses that score well on the RM but humans dislike.</p>
+
+        <div class="callout">
+          <strong>Critical distinction:</strong> RLHF teaches <em>behaviour</em>, not facts. All world knowledge comes from pre-training. RLHF only shapes how that knowledge is expressed — tone, safety, honesty, helpfulness.
+        </div>
+
+        <div class="topic-video">
+          <p class="tv-eyebrow">Recommended video</p>
+          <div class="video-responsive">
+            <iframe src="https://www.youtube-nocookie.com/embed/AhyznRSDjw8?rel=0" title="RLHF paper walkthrough — Yannic Kilcher" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" loading="lazy"></iframe>
+          </div>
+          <p class="tv-caption">Yannic Kilcher — "InstructGPT: Training language models to follow instructions" · Paper walkthrough</p>
+        </div>
+
+        <div class="page-nav">
+          <button class="btn-ghost" onclick="switchPage('page-transformer', document.querySelector('[data-page=page-transformer]'))">&larr; Transformer</button>
+          <button class="btn-primary" onclick="switchPage('page-hallucinations', document.querySelector('[data-page=page-hallucinations]'))">Next: Hallucinations &rarr;</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ▓▓▓▓▓  TOPIC 6: HALLUCINATIONS  ▓▓▓▓▓ -->
+    <section class="page" id="page-hallucinations">
+      <div class="page-wrap">
+        <p class="pg-eyebrow">Topic 06 of 06</p>
+        <h1 class="pg-h1">Hallucinations</h1>
+        <p class="pg-lead">A hallucination is any model output that is fluent, confident, and factually false. The model has no concept of truth — only of generating statistically likely continuations. "Sounding correct" and "being correct" are distinct.</p>
+
+        <h2>Why they happen</h2>
+        <p>LLMs are trained to maximise the likelihood of the next token. When asked about something rare or outside their training distribution, they do not know to say "I don't know." They generate whatever sequence would have been most likely in similar contexts — which can be entirely fabricated, stated with equal confidence to true facts.</p>
+
+        <div class="callout">
+          <strong>Taxonomy:</strong> Intrinsic (contradicts information already in the context), Extrinsic (fabricates new information), Temporal (outdated facts stated as current), Citation (non-existent papers with plausible DOIs and author names).
+        </div>
+
+        <h2>Active mitigations</h2>
+        <div class="step-list">
+          <div class="step-item"><span class="step-n">1</span><div><strong>RAG</strong> — Retrieval-Augmented Generation grounds responses in retrieved documents, limiting what the model can freely fabricate</div></div>
+          <div class="step-item"><span class="step-n">2</span><div><strong>Chain-of-Thought</strong> — externalise reasoning steps before the final answer, making errors visible and correctable</div></div>
+          <div class="step-item"><span class="step-n">3</span><div><strong>Uncertainty calibration</strong> — train models to express calibrated doubt rather than projecting false confidence</div></div>
+          <div class="step-item"><span class="step-n">4</span><div><strong>Human-in-the-loop</strong> — for high-stakes applications, require verification of all factual claims against primary sources</div></div>
+        </div>
+
+        <div class="callout callout--warn">
+          <strong>Rule:</strong> Treat every factual claim from an LLM as a hypothesis. Verify before acting. LLMs are reasoning engines, not knowledge stores.
+        </div>
+
+        <div class="topic-video">
+          <p class="tv-eyebrow">Recommended video</p>
+          <div class="video-responsive">
+            <iframe src="https://www.youtube.com/embed/cfqtFvWOfg0?si=BlA0O0OHAcSNkvmx" title="Backpropagation — Andrej Karpathy" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" loading="lazy"></iframe>
+          </div>
+          <p class="tv-caption">Andrej Karpathy — "Neural networks: Zero to Hero" · Building intuition for why generation is probabilistic</p>
+        </div>
+
+        <div class="page-nav">
+          <button class="btn-ghost" onclick="switchPage('page-rlhf', document.querySelector('[data-page=page-rlhf]'))">&larr; RLHF</button>
+          <button class="btn-primary" onclick="switchPage('page-lab', document.querySelector('[data-page=page-lab]'))">Go to Interactive Lab &rarr;</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ▓▓▓▓▓  PAGE: INTERACTIVE LAB  ▓▓▓▓▓ -->
+    <section class="page" id="page-lab">
+      <div class="page-wrap">
+        <p class="pg-eyebrow">Interactive Lab</p>
+        <h1 class="pg-h1">Hands-on demos</h1>
+        <p class="pg-lead">Two live experiments. Interact directly with the mechanics you've read about.</p>
+
+        <!-- LAB 01: Tokenizer -->
+        <div class="lab-card">
+          <div class="lab-card-head">
+            <div class="lab-num">01</div>
+            <div>
+              <h2>Tokenizer Playground</h2>
+              <p>Type any text and watch it fragment into tokens in real time. Each chip is one token — the atomic unit an LLM reasons with. Spaces are shown as &middot; to make whitespace tokens visible.</p>
+            </div>
+          </div>
+          <div class="tokenizer-ui">
+            <div class="tok-row">
+              <input id="tok-input" class="tok-input" type="text" spellcheck="false" autocomplete="off"
+                     placeholder="Try: unhappiness, ChatGPT, C++ or any sentence…"/>
+              <span id="tok-count" class="tok-count">0 tokens</span>
+            </div>
+            <div id="tok-output" class="tok-output">
+              <span class="tok-empty">Tokens will appear here&hellip;</span>
+            </div>
+            <p class="tok-note">Simplified whitespace/punctuation tokenizer. Production LLMs use Byte-Pair Encoding with a 50k–100k vocabulary table.</p>
+          </div>
+        </div>
+
+        <!-- LAB 02: Probability Waterfall -->
+        <div class="lab-card">
+          <div class="lab-card-head">
+            <div class="lab-num">02</div>
+            <div>
+              <h2>Probability Waterfall</h2>
+              <p>Click <strong>Generate</strong> to simulate one step of autoregressive decoding. Three candidate tokens fall in with their probabilities; the highest-probability token is selected and appended to the sentence.</p>
+            </div>
+          </div>
+          <div class="waterfall-ui">
+            <div class="wf-ctx-wrap">
+              <span class="wf-label">Context window</span>
+              <div id="wf-sentence" class="wf-sentence">Large language models are trained to predict</div>
+            </div>
+            <div id="wf-stage" class="wf-stage" aria-live="polite"></div>
+            <div class="wf-controls">
+              <button id="wf-gen" class="btn-primary" onclick="wfGenerate()">Generate next token</button>
+              <button id="wf-reset" class="btn-ghost" style="display:none" onclick="wfReset()">Reset</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ▓▓▓▓▓  PAGE: VIDEO LIBRARY  ▓▓▓▓▓ -->
+    <section class="page" id="page-videos">
+      <div class="page-wrap">
+        <p class="pg-eyebrow">Video Library</p>
+        <h1 class="pg-h1">Watch to understand</h1>
+        <p class="pg-lead">Curated lectures from the sharpest educators in ML. Click any card to watch in an overlay.</p>
+
+        <div class="vlib-grid">
+
+          <div class="vcard" data-vid="CMrHM8a3hqw" data-title="But what is a GPT?" data-ch="3Blue1Brown" onclick="openModal(this)">
+            <div class="vcard-thumb">
+              <img src="https://img.youtube.com/vi/CMrHM8a3hqw/mqdefault.jpg" alt="3Blue1Brown GPT" loading="lazy"/>
+              <div class="vcard-play"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg></div>
+            </div>
+            <div class="vcard-body">
+              <span class="vcard-ch">3Blue1Brown</span>
+              <h3>But what is a GPT?</h3>
+              <p>Visual first-principles breakdown of Transformer architecture and text generation.</p>
+              <span class="vcard-tag">Architecture</span>
+            </div>
+          </div>
+
+          <div class="vcard" data-vid="kCc8FmEb1nY" data-title="Let's build GPT from scratch" data-ch="Andrej Karpathy" onclick="openModal(this)">
+            <div class="vcard-thumb">
+              <img src="https://img.youtube.com/vi/kCc8FmEb1nY/mqdefault.jpg" alt="Build GPT from scratch" loading="lazy"/>
+              <div class="vcard-play"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg></div>
+            </div>
+            <div class="vcard-body">
+              <span class="vcard-ch">Andrej Karpathy</span>
+              <h3>Let's build GPT from scratch</h3>
+              <p>Code a Transformer in Python from zero — the definitive technical walkthrough.</p>
+              <span class="vcard-tag">Deep Dive</span>
+            </div>
+          </div>
+
+          <div class="vcard" data-vid="AhyznRSDjw8" data-title="RLHF — InstructGPT paper" data-ch="Yannic Kilcher" onclick="openModal(this)">
+            <div class="vcard-thumb">
+              <img src="https://img.youtube.com/vi/AhyznRSDjw8/mqdefault.jpg" alt="RLHF paper walkthrough" loading="lazy"/>
+              <div class="vcard-play"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg></div>
+            </div>
+            <div class="vcard-body">
+              <span class="vcard-ch">Yannic Kilcher</span>
+              <h3>RLHF — InstructGPT Paper</h3>
+              <p>The alignment technique behind ChatGPT, explained via the original paper.</p>
+              <span class="vcard-tag">Alignment</span>
+            </div>
+          </div>
+
+          <div class="vcard" data-vid="ySEx_ap2WEM" data-title="Neural networks: Zero to Hero" data-ch="Andrej Karpathy" onclick="openModal(this)">
+            <div class="vcard-thumb">
+              <img src="https://i.ytimg.com/vi/cfqtFvWOfg0/hq720.jpg?sqp=-oaymwEnCNAFEJQDSFryq4qpAxkIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB&rs=AOn4CLC7y9DKf6GbHCRdzR8dapeMpF16Mw" alt="Neural networks zero to hero" loading="lazy"/>
+              <div class="vcard-play"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg></div>
+            </div>
+            <div class="vcard-body">
+              <span class="vcard-ch">Andrej Karpathy</span>
+              <h3>Neural Networks: Zero to Hero</h3>
+              <p>From backpropagation to a character-level language model. The complete series.</p>
+              <span class="vcard-tag">Foundations</span>
+            </div>
+          </div>
+
+          <div class="vcard" data-vid="zduSFxRajkE" data-title="Let's build the GPT Tokenizer" data-ch="Andrej Karpathy" onclick="openModal(this)">
+            <div class="vcard-thumb">
+              <img src="https://img.youtube.com/vi/zduSFxRajkE/mqdefault.jpg" alt="GPT Tokenizer" loading="lazy"/>
+              <div class="vcard-play"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg></div>
+            </div>
+            <div class="vcard-body">
+              <span class="vcard-ch">Andrej Karpathy</span>
+              <h3>Let's build the GPT Tokenizer</h3>
+              <p>BPE from scratch — tiktoken internals and Unicode edge cases explained.</p>
+              <span class="vcard-tag">Tokenization</span>
+            </div>
+          </div>
+
+          <div class="vcard" data-vid="wjZofJX0v4M" data-title="Word Embeddings &amp; Word2Vec" data-ch="3Blue1Brown" onclick="openModal(this)">
+            <div class="vcard-thumb">
+              <img src="https://img.youtube.com/vi/wjZofJX0v4M/mqdefault.jpg" alt="Word embeddings" loading="lazy"/>
+              <div class="vcard-play"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg></div>
+            </div>
+            <div class="vcard-body">
+              <span class="vcard-ch">3Blue1Brown</span>
+              <h3>Word Embeddings &amp; Word2Vec</h3>
+              <p>The geometric intuition behind semantic vector spaces, beautifully visualised.</p>
+              <span class="vcard-tag">Embeddings</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ▓▓▓▓▓  PAGE: QUIZ  ▓▓▓▓▓ -->
+    <section class="page" id="page-quiz">
+      <div class="page-wrap page-wrap--narrow">
+        <p class="pg-eyebrow">Assessment</p>
+        <h1 class="pg-h1">Knowledge Check</h1>
+        <p class="pg-lead">Eight questions covering all six topics. Select an answer to reveal instant feedback and a technical explanation.</p>
+
+        <div id="quiz-body">
+
+          <div class="q-card" data-q="0">
+            <p class="q-text">1. What does BPE (Byte-Pair Encoding) do during tokenizer training?</p>
+            <div class="q-opts">
+              <button class="q-opt">Maps every Unicode character to a unique ID</button>
+              <button class="q-opt">Iteratively merges the most frequent adjacent symbol pair until a target vocabulary size is reached</button>
+              <button class="q-opt">Splits text purely on whitespace and punctuation</button>
+              <button class="q-opt">Converts text to binary before encoding</button>
+            </div>
+            <div class="q-fb" id="fb-0"></div>
+          </div>
+
+          <div class="q-card" data-q="1">
+            <p class="q-text">2. What geometric property do word embeddings exhibit?</p>
+            <div class="q-opts">
+              <button class="q-opt">Random distribution — no structure</button>
+              <button class="q-opt">Semantically similar tokens cluster together; analogy arithmetic works</button>
+              <button class="q-opt">All vectors are unit-length and orthogonal</button>
+              <button class="q-opt">Embeddings are identical for tokens with the same POS tag</button>
+            </div>
+            <div class="q-fb" id="fb-1"></div>
+          </div>
+
+          <div class="q-card" data-q="2">
+            <p class="q-text">3. What is the scaled dot-product attention formula?</p>
+            <div class="q-opts">
+              <button class="q-opt">Attention = softmax(QVᵀ) · K</button>
+              <button class="q-opt">Attention = sigmoid(QKᵀ / d<sub>k</sub>) · V</button>
+              <button class="q-opt">Attention = softmax(QKᵀ / √d<sub>k</sub>) · V</button>
+              <button class="q-opt">Attention = LayerNorm(Q + K) · V</button>
+            </div>
+            <div class="q-fb" id="fb-2"></div>
+          </div>
+
+          <div class="q-card" data-q="3">
+            <p class="q-text">4. How does GPT enforce left-to-right generation?</p>
+            <div class="q-opts">
+              <button class="q-opt">It processes tokens sequentially using an LSTM layer</button>
+              <button class="q-opt">It uses causal masking — future attention scores are set to −∞ before softmax</button>
+              <button class="q-opt">It shuffles the token sequence during training</button>
+              <button class="q-opt">It uses bidirectional attention with a [SEP] token</button>
+            </div>
+            <div class="q-fb" id="fb-3"></div>
+          </div>
+
+          <div class="q-card" data-q="4">
+            <p class="q-text">5. What does the Reward Model learn in the RLHF pipeline?</p>
+            <div class="q-opts">
+              <button class="q-opt">The probability of the next token</button>
+              <button class="q-opt">Human preference rankings for (prompt, completion) pairs</button>
+              <button class="q-opt">Whether a response contains harmful content</button>
+              <button class="q-opt">The embedding distance between question and answer</button>
+            </div>
+            <div class="q-fb" id="fb-4"></div>
+          </div>
+
+          <div class="q-card" data-q="5">
+            <p class="q-text">6. An LLM "hallucination" is best defined as:</p>
+            <div class="q-opts">
+              <button class="q-opt">A crash caused by exceeding the context window</button>
+              <button class="q-opt">A safety refusal triggered by policy filters</button>
+              <button class="q-opt">A fluent, confident output that is factually false</button>
+              <button class="q-opt">An increased latency caused by large batch sizes</button>
+            </div>
+            <div class="q-fb" id="fb-5"></div>
+          </div>
+
+          <div class="q-card" data-q="6">
+            <p class="q-text">7. What does RAG primarily address?</p>
+            <div class="q-opts">
+              <button class="q-opt">High inference latency at scale</button>
+              <button class="q-opt">Hallucination and outdated knowledge — by grounding responses in retrieved documents</button>
+              <button class="q-opt">Insufficient model parameter count</button>
+              <button class="q-opt">Slow tokenization throughput</button>
+            </div>
+            <div class="q-fb" id="fb-6"></div>
+          </div>
+
+          <div class="q-card" data-q="7">
+            <p class="q-text">8. In RLHF, the KL-divergence penalty:</p>
+            <div class="q-opts">
+              <button class="q-opt">Speeds up PPO training convergence</button>
+              <button class="q-opt">Constrains policy drift from the SFT baseline, preventing reward hacking</button>
+              <button class="q-opt">Normalises Reward Model output scores to [0, 1]</button>
+              <button class="q-opt">Controls vocabulary size during fine-tuning</button>
+            </div>
+            <div class="q-fb" id="fb-7"></div>
+          </div>
+
+        </div>
+
+        <div class="quiz-result" id="quiz-result" style="display:none">
+          <div class="qr-score" id="qr-score">—</div>
+          <p id="qr-msg">—</p>
+          <button class="btn-ghost" onclick="quizReset()">Try again</button>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ╔══════════════════════════════════════════════════════════╗
+       ║  VIDEO MODAL                                            ║
+       ║  Hidden by default. JS injects iframe on open.         ║
+       ║  Uses youtube-nocookie.com — no cookies until play.    ║
+       ╚══════════════════════════════════════════════════════════╝ -->
+  <div id="modal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-backdrop" onclick="closeModal()"></div>
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-meta">
+          <span id="modal-ch" class="modal-ch"></span>
+          <h3 id="modal-title" class="modal-title"></h3>
+        </div>
+        <button class="modal-close" onclick="closeModal()" aria-label="Close">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <line x1="4" y1="4" x2="16" y2="16"/>
+            <line x1="16" y1="4" x2="4" y2="16"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-player" id="modal-player"></div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,822 @@
+/**
+ * script.js — Neural Lens
+ *
+ * Five modules, each wrapped in an IIFE so their internals stay private.
+ *
+ *  1. ThemeModule        — Dark / light toggle + localStorage persistence
+ *  2. ScrollModule       — Progress bar, back-to-top, nav shadow,
+ *                          IntersectionObserver scroll reveals,
+ *                          active nav-link tracking
+ *  3. AttentionModule    — Self-attention heatmap hover demo
+ *  4. WaterfallModule    — Probability waterfall / next-token generation demo
+ *  5. PulseModule        — SVG neural network pulse animation (IntersectionObserver)
+ *  6. TokenizerModule    — Real-time text → token chips
+ *  7. VideoModalModule   — Click-to-open youtube-nocookie modal
+ *  8. GlossaryModule     — Hover tooltips for .glossary-term elements
+ *
+ *  Plus toggleDive() — global function called from inline onclick in HTML.
+ */
+
+'use strict';
+
+
+/* ═══════════════════════════════════════════════════════════════
+   MODULE 1 — THEME
+   ═══════════════════════════════════════════════════════════════ */
+
+const ThemeModule = (() => {
+  const KEY = 'nl-theme';
+  const ROOT = document.documentElement;
+  const btn  = document.getElementById('theme-toggle');
+
+  function apply(t) {
+    t === 'dark'
+      ? ROOT.setAttribute('data-theme', 'dark')
+      : ROOT.removeAttribute('data-theme');
+  }
+
+  function init() {
+    const saved = localStorage.getItem(KEY);
+    if (saved) apply(saved);
+    btn.addEventListener('click', () => {
+      const next = ROOT.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      apply(next);
+      localStorage.setItem(KEY, next);
+    });
+  }
+
+  return { init };
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   MODULE 2 — SCROLL
+   IntersectionObserver explanation:
+   We create one observer for ".reveal" elements (fade-in on scroll)
+   and a second for <section> elements (active nav link tracking).
+   The IntersectionObserver fires asynchronously whenever a watched
+   element's visibility changes relative to the viewport. We use
+   threshold: 0.08 for reveals (fire when 8% is visible) and
+   threshold: 0.25 for sections (fire when 25% is visible).
+   Once a .reveal element has animated in, we unobserve it —
+   no point keeping it in the watch list.
+   ═══════════════════════════════════════════════════════════════ */
+
+const ScrollModule = (() => {
+  const bar  = document.getElementById('progress-bar');
+  const btt  = document.getElementById('back-to-top');
+  const nav  = document.getElementById('navbar');
+
+  function onScroll() {
+    const y   = window.scrollY;
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    bar.style.width = ((y / max) * 100) + '%';
+    btt.classList.toggle('visible', y > 400);
+    nav.classList.toggle('scrolled', y > 10);
+  }
+
+  // Reveal observer — adds .visible to trigger CSS fade-in-up
+  const revealObs = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => entry.target.classList.add('visible'), i * 55);
+        revealObs.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+
+  // Active nav observer — highlights the current section link
+  const navLinks  = document.querySelectorAll('.nav-links a');
+  const sectionObs = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const href = '#' + entry.target.id;
+        navLinks.forEach(l => l.classList.toggle('active', l.getAttribute('href') === href));
+      }
+    });
+  }, { threshold: 0.25 });
+
+  function init() {
+    window.addEventListener('scroll', onScroll, { passive: true });
+    btt.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+    document.querySelectorAll('section[id], div[id="quiz"]').forEach(s => sectionObs.observe(s));
+  }
+
+  return { init };
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   MODULE 3 — ATTENTION HEATMAP
+
+   CONCEPT (for your professor):
+   Self-attention allows every token in a sequence to "attend to"
+   every other token with a learned weight. A high weight between
+   token A and token B means the model considers B highly relevant
+   when computing the new representation of A.
+
+   HOW THIS DEMO WORKS:
+   We hard-code a plausible attention matrix (10×10) that mimics
+   what a real GPT-style attention head might produce for the
+   sentence "The transformer model learns contextual representations
+   through attention weights."
+
+   Each row i represents: "when processing word i, how much does
+   the model attend to word j?" — the values in that row.
+
+   On mouseenter of word i:
+     1. We add .attention-sentence.active to dim all words to 0.18 opacity
+     2. We classify each word j based on attn[i][j]:
+        - The hovered word itself → .attn-focus (opacity 1, no bg)
+        - attn > 0.15 → .attn-high  (teal background, opacity 1)
+        - attn > 0.06 → .attn-mid   (light teal bg, opacity 0.7)
+        - anything else → .attn-low  (opacity 0.35)
+     3. CSS transitions handle the smooth fade — no JS animation loop needed.
+
+   On mouseleave: we remove all classes to restore neutral state.
+
+   The values in ATTN_MATRIX are not random — they reflect linguistic
+   intuition: "model" attends strongly to "transformer" (modifier–noun),
+   "representations" attends to "contextual" (adjective–noun), etc.
+   ═══════════════════════════════════════════════════════════════ */
+
+const AttentionModule = (() => {
+
+  // 10 × 10 attention matrix: ATTN_MATRIX[i][j] = attention from word i to word j.
+  // Words: The(0) transformer(1) model(2) learns(3) contextual(4) representations(5) through(6) attention(7) weights(8) .(9)
+  const ATTN_MATRIX = [
+    // The
+    [0.30, 0.18, 0.12, 0.05, 0.04, 0.06, 0.04, 0.08, 0.08, 0.05],
+    // transformer
+    [0.08, 0.30, 0.24, 0.10, 0.05, 0.06, 0.04, 0.07, 0.05, 0.01],
+    // model
+    [0.10, 0.20, 0.28, 0.16, 0.05, 0.07, 0.03, 0.06, 0.04, 0.01],
+    // learns
+    [0.06, 0.12, 0.18, 0.24, 0.08, 0.12, 0.05, 0.08, 0.06, 0.01],
+    // contextual
+    [0.04, 0.06, 0.06, 0.08, 0.28, 0.26, 0.05, 0.07, 0.08, 0.02],
+    // representations
+    [0.05, 0.08, 0.10, 0.12, 0.22, 0.25, 0.05, 0.07, 0.05, 0.01],
+    // through
+    [0.04, 0.05, 0.06, 0.10, 0.06, 0.08, 0.26, 0.18, 0.14, 0.03],
+    // attention
+    [0.05, 0.10, 0.06, 0.08, 0.06, 0.08, 0.14, 0.28, 0.12, 0.03],
+    // weights
+    [0.05, 0.06, 0.05, 0.08, 0.08, 0.07, 0.12, 0.20, 0.26, 0.03],
+    // .
+    [0.08, 0.06, 0.06, 0.08, 0.06, 0.10, 0.08, 0.10, 0.14, 0.24],
+  ];
+
+  function init() {
+    const sentence = document.getElementById('attn-sentence');
+    if (!sentence) return;
+
+    const words = sentence.querySelectorAll('.attn-word');
+
+    words.forEach((wordEl) => {
+      const i = parseInt(wordEl.dataset.idx, 10);
+
+      wordEl.addEventListener('mouseenter', () => {
+        // Step 1: Activate the container — CSS dims all words to opacity 0.18
+        sentence.classList.add('active');
+
+        // Step 2: Classify each word by its attention weight to word i
+        words.forEach((w) => {
+          const j   = parseInt(w.dataset.idx, 10);
+          const val = ATTN_MATRIX[i][j];
+
+          // Remove any previous classification
+          w.classList.remove('attn-focus', 'attn-high', 'attn-mid', 'attn-low');
+
+          if (j === i) {
+            w.classList.add('attn-focus');    // The hovered word itself
+          } else if (val > 0.15) {
+            w.classList.add('attn-high');     // Strong attention → teal highlight
+          } else if (val > 0.06) {
+            w.classList.add('attn-mid');      // Moderate attention → faint teal
+          } else {
+            w.classList.add('attn-low');      // Weak attention → stay dim
+          }
+        });
+      });
+
+      wordEl.addEventListener('mouseleave', () => {
+        // Restore neutral state — remove all classification classes
+        sentence.classList.remove('active');
+        words.forEach(w => w.classList.remove('attn-focus', 'attn-high', 'attn-mid', 'attn-low'));
+      });
+    });
+  }
+
+  return { init };
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   MODULE 4 — PROBABILITY WATERFALL
+
+   CONCEPT:
+   Autoregressive generation works by computing a probability
+   distribution over the entire vocabulary at each step, then
+   sampling (or greedily selecting) the next token.
+
+   This demo simulates that process with a small curated set of
+   (context, candidates) pairs. Each candidate has a probability.
+   On "Generate", three candidates fall in with animated bars.
+   The winner (highest p) is selected and appended.
+
+   The "falling" visual uses CSS animation (tokenFall keyframes)
+   staggered by 0/90/180ms via nth-child selectors in CSS.
+   The bar height is set via inline style after a rAF delay so
+   the browser paints the element at height 0 first, then
+   transitions to the correct height — creating a "rise" effect.
+   ═══════════════════════════════════════════════════════════════ */
+
+const WaterfallModule = (() => {
+
+  // Each entry: the text to match the sentence ending → candidates
+  const SEQUENCE = [
+    {
+      match: 'predict',
+      candidates: [
+        { token: ' the',       prob: 0.41 },
+        { token: ' text',      prob: 0.28 },
+        { token: ' next',      prob: 0.17 },
+      ]
+    },
+    {
+      match: 'the',
+      candidates: [
+        { token: ' next',      prob: 0.52 },
+        { token: ' correct',   prob: 0.21 },
+        { token: ' most',      prob: 0.14 },
+      ]
+    },
+    {
+      match: 'next',
+      candidates: [
+        { token: ' token',     prob: 0.63 },
+        { token: ' word',      prob: 0.24 },
+        { token: ' character', prob: 0.09 },
+      ]
+    },
+    {
+      match: 'token',
+      candidates: [
+        { token: ' in',        prob: 0.48 },
+        { token: ' given',     prob: 0.30 },
+        { token: ' at',        prob: 0.11 },
+      ]
+    },
+    {
+      match: 'in',
+      candidates: [
+        { token: ' a',         prob: 0.38 },
+        { token: ' each',      prob: 0.27 },
+        { token: ' the',       prob: 0.22 },
+      ]
+    },
+    {
+      match: 'a',
+      candidates: [
+        { token: ' sequence',  prob: 0.55 },
+        { token: ' sentence',  prob: 0.29 },
+        { token: ' corpus',    prob: 0.10 },
+      ]
+    },
+    {
+      match: 'sequence',
+      candidates: [
+        { token: '.',          prob: 0.44 },
+        { token: ' of',        prob: 0.33 },
+        { token: ',',          prob: 0.14 },
+      ]
+    },
+  ];
+
+  let stepIndex   = 0;
+  let isAnimating = false;
+
+  const sentenceEl = document.getElementById('wf-sentence');
+  const stageEl    = document.getElementById('wf-stage');
+  const genBtn     = document.getElementById('wf-btn');
+  const resetBtn   = document.getElementById('wf-reset');
+
+  function step() {
+    if (isAnimating) return;
+    if (stepIndex >= SEQUENCE.length) return;
+
+    isAnimating = true;
+    const entry = SEQUENCE[stepIndex];
+
+    // Build and inject candidate columns into the stage
+    stageEl.innerHTML = '';
+    const sortedCandidates = [...entry.candidates].sort((a, b) => b.prob - a.prob);
+    const winner = sortedCandidates[0];
+
+    sortedCandidates.forEach((candidate) => {
+      const isWinner = candidate === winner;
+      const col      = document.createElement('div');
+      col.className  = 'wf-token-col';
+
+      const barWrap  = document.createElement('div');
+      barWrap.className = 'wf-bar-wrap';
+
+      const bar      = document.createElement('div');
+      bar.className  = 'wf-bar' + (isWinner ? ' wf-winner' : '');
+      bar.style.height = '0px';  // Start at 0 — will animate to full height
+
+      barWrap.appendChild(bar);
+
+      const chip     = document.createElement('div');
+      chip.className = 'wf-token-chip' + (isWinner ? ' wf-winner' : '');
+      chip.textContent = candidate.token.trim() || candidate.token;
+
+      const probEl   = document.createElement('div');
+      probEl.className = 'wf-prob' + (isWinner ? ' wf-winner' : '');
+      probEl.textContent = Math.round(candidate.prob * 100) + '%';
+
+      col.append(barWrap, chip, probEl);
+      stageEl.appendChild(col);
+
+      // After the fall animation has painted the column,
+      // animate the bar height to represent probability.
+      // rAF ensures the DOM has rendered at height 0 before transitioning.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          bar.style.transition = 'height 0.55s cubic-bezier(0.34, 1.56, 0.64, 1)';
+          bar.style.height = Math.round(candidate.prob * 60) + 'px';
+        });
+      });
+    });
+
+    // After 1.2 seconds, append the winning token to the sentence
+    setTimeout(() => {
+      const current = sentenceEl.textContent;
+      // Clear and rebuild with the chosen token highlighted
+      sentenceEl.innerHTML = '';
+      const baseSpan = document.createElement('span');
+      baseSpan.textContent = current;
+      const chosenSpan = document.createElement('span');
+      chosenSpan.className = 'wf-chosen';
+      chosenSpan.textContent = winner.token;
+      sentenceEl.append(baseSpan, chosenSpan);
+
+      stepIndex++;
+      isAnimating = false;
+
+      if (stepIndex >= SEQUENCE.length) {
+        genBtn.disabled = true;
+        genBtn.textContent = 'Sequence complete';
+        resetBtn.style.display = 'inline-block';
+      }
+    }, 1200);
+  }
+
+  function reset() {
+    stepIndex = 0;
+    isAnimating = false;
+    stageEl.innerHTML = '';
+    sentenceEl.innerHTML = 'Large language models are trained to predict';
+    genBtn.disabled = false;
+    genBtn.textContent = 'Generate next token';
+    resetBtn.style.display = 'none';
+  }
+
+  function init() {
+    if (!genBtn) return;
+    genBtn.addEventListener('click', step);
+    resetBtn.addEventListener('click', reset);
+  }
+
+  return { init };
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   MODULE 5 — NEURAL PULSE (SVG)
+
+   CONCEPT (for your professor):
+   A feedforward neural network propagates a signal left to right:
+   input → hidden layers → output. Each layer receives the activations
+   of the previous layer, multiplies them by learned weight matrices,
+   applies a non-linearity, and passes the result on.
+
+   HOW THE ANIMATION WORKS:
+   1. We group SVG nodes (.pn) and edges (.pe) by their data-layer attribute.
+   2. We animate layers 0 → 1 → 2 → 3 → 4 in sequence, with a delay
+      between each layer (LAYER_DELAY ms).
+   3. "Activating" a layer means:
+      - Adding .active to all nodes in that layer → CSS changes their
+        fill and stroke to teal, adds a drop-shadow glow.
+      - Adding .active to all edges that connect the *previous* layer to
+        this layer → CSS changes their stroke to teal.
+   4. After the full sequence plays, we remove all .active classes and
+      let the animation replay if triggered again.
+
+   INTERSECTION OBSERVER:
+   The pulse auto-plays when the SVG enters the viewport for the first time.
+   We use IntersectionObserver with threshold: 0.5 (half the SVG visible).
+   After the first trigger we disconnect the observer — it only auto-plays once.
+   The "Replay" button allows manual retriggering.
+
+   TIMING:
+   Layer delay = 320ms. Each layer's highlight lasts HOLD_TIME = 900ms.
+   We also keep *previous* layer nodes lit at reduced opacity during the
+   signal propagation for a more natural "still processing" look.
+   ═══════════════════════════════════════════════════════════════ */
+
+const PulseModule = (() => {
+
+  const LAYER_DELAY = 380;  // ms between layer activations
+  const HOLD_TIME   = 900;  // ms a layer stays "active" after the pulse passes
+
+  let isPlaying = false;
+
+  function getByLayer(selector, layer) {
+    return document.querySelectorAll(`${selector}[data-layer="${layer}"]`);
+  }
+
+  /**
+   * Fire the pulse animation across layers 0 through 4.
+   * Each layer lights up its nodes and the edges arriving from the previous layer.
+   *
+   * @param {SVGElement} svg - The SVG root element
+   * @param {Function}   onDone - Optional callback after full sequence
+   */
+  function runPulse(svg, onDone) {
+    if (isPlaying) return;
+    isPlaying = true;
+
+    // Reset any previous state
+    svg.querySelectorAll('.pn, .pe').forEach(el => el.classList.remove('active'));
+
+    const NUM_LAYERS = 5;
+
+    for (let layer = 0; layer < NUM_LAYERS; layer++) {
+      setTimeout(() => {
+        // --- Activate nodes in this layer ---
+        getByLayer('.pn', layer).forEach(n => n.classList.add('active'));
+
+        // --- Activate edges that arrive INTO this layer ---
+        // Edges connect layer (layer-1) nodes to layer (layer) nodes.
+        // We activate all .pe elements that are geometrically between these layers.
+        // Because our SVG edge .pe elements don't have layer attributes, we
+        // identify them by matching x1 coordinates to the previous-layer node positions.
+        if (layer > 0) {
+          const prevNodes = getByLayer('.pn', layer - 1);
+          const prevXSet  = new Set();
+          prevNodes.forEach(n => prevXSet.add(Math.round(parseFloat(n.getAttribute('cx')))));
+
+          svg.querySelectorAll('.pe').forEach(edge => {
+            const x1 = Math.round(parseFloat(edge.getAttribute('x1')));
+            if (prevXSet.has(x1)) {
+              edge.classList.add('active');
+            }
+          });
+        }
+
+        // --- Deactivate this layer after HOLD_TIME ---
+        setTimeout(() => {
+          getByLayer('.pn', layer).forEach(n => n.classList.remove('active'));
+          // Deactivate edges from this layer too
+          const curNodes = getByLayer('.pn', layer);
+          const curXSet  = new Set();
+          curNodes.forEach(n => curXSet.add(Math.round(parseFloat(n.getAttribute('cx')))));
+          svg.querySelectorAll('.pe').forEach(edge => {
+            const x1 = Math.round(parseFloat(edge.getAttribute('x1')));
+            if (curXSet.has(x1)) edge.classList.remove('active');
+          });
+        }, HOLD_TIME);
+
+        // After the last layer finishes
+        if (layer === NUM_LAYERS - 1) {
+          setTimeout(() => {
+            isPlaying = false;
+            if (typeof onDone === 'function') onDone();
+          }, HOLD_TIME + 100);
+        }
+
+      }, layer * LAYER_DELAY);
+    }
+  }
+
+  function init() {
+    const svg       = document.getElementById('pulse-svg');
+    const replayBtn = document.getElementById('pulse-replay');
+    if (!svg) return;
+
+    // Auto-play when diagram enters the viewport the first time
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          // Small delay so the user sees the diagram settle before it pulses
+          setTimeout(() => runPulse(svg), 400);
+          obs.disconnect(); // Only auto-play once
+        }
+      });
+    }, { threshold: 0.5 });
+
+    obs.observe(svg);
+
+    // Manual replay button
+    replayBtn.addEventListener('click', () => runPulse(svg));
+  }
+
+  return { init };
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   MODULE 6 — TOKENIZER
+
+   The regex /([a-zA-Z0-9']+|[^a-zA-Z0-9']+)/g splits input into
+   alternating "word-character runs" and "non-word-character runs".
+   Input:   "Hello, world!"
+   Tokens:  ["Hello"] [", "] ["world"] ["!"]
+
+   Whitespace tokens are rendered with a visible middle-dot (·)
+   so students can see that spaces are preserved as real tokens.
+
+   We use a DocumentFragment to batch all DOM insertions into a
+   single reflow — cheaper than appending chips one by one.
+   ═══════════════════════════════════════════════════════════════ */
+
+const TokenizerModule = (() => {
+  const inputEl  = document.getElementById('tokenizer-input');
+  const outputEl = document.getElementById('token-output');
+  const countEl  = document.getElementById('token-count');
+
+  function tokenize(text) {
+    if (!text) return [];
+    const m = text.match(/([a-zA-Z0-9']+|[^a-zA-Z0-9']+)/g);
+    return m ? m.filter(Boolean) : [];
+  }
+
+  function render(tokens) {
+    outputEl.innerHTML = '';
+    if (!tokens.length) {
+      outputEl.innerHTML = '<span class="token-placeholder">Tokens appear here&hellip;</span>';
+      countEl.textContent = '0 tokens';
+      return;
+    }
+    const frag = document.createDocumentFragment();
+    tokens.forEach(t => {
+      const chip = document.createElement('span');
+      chip.className   = 'token-chip';
+      chip.textContent = t.replace(/ /g, '\u00B7').replace(/\t/g, '\u00BB\u00B7');
+      frag.appendChild(chip);
+    });
+    outputEl.appendChild(frag);
+    const n = tokens.length;
+    countEl.textContent = n + ' token' + (n === 1 ? '' : 's');
+  }
+
+  function init() {
+    if (!inputEl) return;
+    inputEl.addEventListener('input', () => render(tokenize(inputEl.value)));
+  }
+
+  return { init };
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   MODULE 7 — VIDEO MODAL
+
+   Uses youtube-nocookie.com to avoid third-party tracking cookies
+   before the user clicks (important for GDPR compliance and
+   performance — YouTube normally loads several scripts on page load).
+
+   State: isOpen boolean prevents double-open/close.
+
+   Open sequence:
+     1. Inject <iframe> with youtube-nocookie src + autoplay=1
+     2. Add .is-open → CSS transitions opacity 0→1, scale 0.94→1
+     3. Lock body scroll
+     4. Focus close button (keyboard accessibility)
+
+   Close sequence:
+     1. Remove .is-open → CSS fades out
+     2. Restore scroll
+     3. After 300ms (animation duration): clear iframe innerHTML
+        so the video audio stops and memory is freed.
+   ═══════════════════════════════════════════════════════════════ */
+
+const VideoModalModule = (() => {
+  const modal     = document.getElementById('video-modal');
+  const backdrop  = document.getElementById('modal-backdrop');
+  const closeBtn  = document.getElementById('modal-close');
+  const playerDiv = document.getElementById('modal-player');
+  const titleEl   = document.getElementById('modal-title');
+  const channelEl = document.getElementById('modal-channel');
+
+  let isOpen = false;
+
+  function open(videoId, title, channel) {
+    if (isOpen) return;
+    isOpen = true;
+
+    titleEl.textContent   = title;
+    channelEl.textContent = channel;
+
+    // youtube-nocookie.com: sets no tracking cookies until the user plays.
+    // This is the correct privacy-preserving embed URL.
+    const iframe = document.createElement('iframe');
+    iframe.src             = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0`;
+    iframe.allow           = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+    iframe.allowFullscreen = true;
+    iframe.title           = title;
+    playerDiv.appendChild(iframe);
+
+    modal.classList.add('is-open');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    closeBtn.focus();
+  }
+
+  function close() {
+    if (!isOpen) return;
+    isOpen = false;
+
+    modal.classList.remove('is-open');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+
+    // Wait for fade-out before destroying iframe (stops audio immediately)
+    setTimeout(() => { playerDiv.innerHTML = ''; }, 300);
+  }
+
+  function init() {
+    closeBtn.addEventListener('click', close);
+    backdrop.addEventListener('click', close);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && isOpen) close(); });
+
+    document.querySelectorAll('.video-card').forEach(card => {
+      card.addEventListener('click', () => {
+        open(card.dataset.videoId, card.dataset.title, card.dataset.channel);
+      });
+    });
+  }
+
+  return { init };
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   MODULE 8 — GLOSSARY TOOLTIPS
+   Single shared tooltip element positioned near hovered term.
+   Falls back to below the term if near the viewport top.
+   ═══════════════════════════════════════════════════════════════ */
+
+const GlossaryModule = (() => {
+  const tip = document.getElementById('glossary-tooltip');
+
+  function show(el) {
+    tip.textContent = el.dataset.def;
+    tip.removeAttribute('aria-hidden');
+    // Position after paint so offsetHeight is known
+    requestAnimationFrame(() => {
+      const r   = el.getBoundingClientRect();
+      const GAP = 8, TW = 272;
+      let top  = r.top + window.scrollY - tip.offsetHeight - GAP;
+      let left = r.left + window.scrollX;
+      if (left + TW > window.innerWidth - 16) left = window.innerWidth - TW - 16;
+      if (top < window.scrollY + 8) top = r.bottom + window.scrollY + GAP;
+      tip.style.top  = top + 'px';
+      tip.style.left = left + 'px';
+      tip.classList.add('visible');
+    });
+  }
+
+  function hide() {
+    tip.classList.remove('visible');
+    tip.setAttribute('aria-hidden', 'true');
+  }
+
+  function init() {
+    document.querySelectorAll('.glossary-term').forEach(t => {
+      t.addEventListener('mouseenter', () => show(t));
+      t.addEventListener('mouseleave', hide);
+      t.addEventListener('focus',      () => show(t));
+      t.addEventListener('blur',       hide);
+    });
+  }
+
+  return { init };
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   GLOBAL — ACCORDION
+   Needs to be global because onclick="toggleDive(...)" in HTML
+   ═══════════════════════════════════════════════════════════════ */
+
+function toggleDive(id) {
+  const panel  = document.getElementById(id);
+  const header = panel.querySelector('.deep-dive-header');
+  const isNow  = panel.classList.toggle('open');
+  header.setAttribute('aria-expanded', isNow ? 'true' : 'false');
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   QUIZ ENGINE
+   ═══════════════════════════════════════════════════════════════ */
+
+const QuizModule = (() => {
+  const CORRECT = [1, 1, 1, 1, 2, 1, 1, 1]; // 0-indexed correct option per question
+
+  const EXPLANATIONS = [
+    'Reinforcement Learning from Human Feedback — a three-phase alignment process: supervised fine-tuning, reward model training, then PPO optimisation.',
+    'BERT is encoder-only and bidirectional — optimised for understanding. GPT/LLaMA/Claude are decoder-only — optimised for generation.',
+    'Hallucination: fluent, confident output that is factually false. The model has no concept of "truth" — only of statistically likely continuations.',
+    'The Transformer processes all tokens in parallel (not sequentially like an RNN), so positional encoding is required to inject sequence order information.',
+    'Vaswani et al. (2017) "Attention Is All You Need" was published by researchers at Google Brain and Google Research.',
+    'BPE: iteratively merge the most frequent adjacent character pair into a new subword unit, repeating until the vocabulary reaches a target size.',
+    'RAG (Retrieval-Augmented Generation): retrieve relevant document chunks from an index and prepend them to the prompt — grounding generation in evidence.',
+    'Multiple heads run in parallel, each learning to attend to different relationship types — syntax in one head, co-reference in another, etc.',
+  ];
+
+  let answered = new Array(CORRECT.length).fill(false);
+  let score    = 0;
+
+  function handleAnswer(btn, qi, ci) {
+    if (answered[qi]) return;
+    answered[qi] = true;
+
+    const opts = btn.parentElement.querySelectorAll('.quiz-option');
+    opts.forEach(o => { o.disabled = true; });
+
+    const fb = document.getElementById('fb-' + qi);
+    if (ci === CORRECT[qi]) {
+      btn.classList.add('correct');
+      fb.textContent = 'Correct. ' + EXPLANATIONS[qi];
+      fb.className   = 'quiz-feedback correct';
+      score++;
+    } else {
+      btn.classList.add('wrong');
+      opts[CORRECT[qi]].classList.add('correct');
+      fb.textContent = 'Not quite. ' + EXPLANATIONS[qi];
+      fb.className   = 'quiz-feedback wrong';
+    }
+
+    if (answered.every(Boolean)) showScore();
+  }
+
+  function showScore() {
+    const el = document.getElementById('quiz-score');
+    el.style.display = 'block';
+    document.getElementById('score-title').textContent = score + ' / ' + CORRECT.length;
+    const msgs = [
+      'Keep reading — the foundations will solidify with another pass.',
+      'Keep reading — the foundations will solidify with another pass.',
+      'Keep reading — the foundations will solidify with another pass.',
+      'Making progress. Revisit the Deep Dive sections.',
+      'Good foundation. A few more concepts to nail down.',
+      'Solid understanding. Revisit the sections you missed.',
+      'Strong result. One or two details to sharpen.',
+      'Excellent. You have a rigorous grasp of LLM fundamentals.',
+      'Perfect score. You understand the material at a technical depth.',
+    ];
+    document.getElementById('score-msg').textContent = msgs[score];
+  }
+
+  function reset() {
+    answered = new Array(CORRECT.length).fill(false); score = 0;
+    document.querySelectorAll('.quiz-option').forEach(b => { b.classList.remove('correct','wrong'); b.disabled = false; });
+    document.querySelectorAll('.quiz-feedback').forEach(f => { f.textContent = ''; f.className = 'quiz-feedback'; });
+    document.getElementById('quiz-score').style.display = 'none';
+  }
+
+  function init() {
+    document.querySelectorAll('.quiz-q').forEach(qEl => {
+      const qi   = parseInt(qEl.dataset.q, 10);
+      const btns = qEl.querySelectorAll('.quiz-option');
+      btns.forEach((btn, ci) => {
+        btn.addEventListener('click', () => handleAnswer(btn, qi, ci));
+      });
+    });
+    document.getElementById('quiz-reset-btn').addEventListener('click', reset);
+  }
+
+  return { init };
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   BOOT — initialise everything once the DOM is ready
+   ═══════════════════════════════════════════════════════════════ */
+
+document.addEventListener('DOMContentLoaded', () => {
+  ThemeModule.init();
+  ScrollModule.init();
+  AttentionModule.init();
+  WaterfallModule.init();
+  PulseModule.init();
+  TokenizerModule.init();
+  VideoModalModule.init();
+  GlossaryModule.init();
+  QuizModule.init();
+});
